@@ -13,7 +13,6 @@ fun p :: "real \<Rightarrow> real \<Rightarrow> real" where
 fun q :: "real \<Rightarrow> real \<Rightarrow> real" where
 "q a b = sqrt a - sqrt b"
 
-
 (*
  pokazujem p * q = a - b, razlika kvadrata 
 *)
@@ -31,18 +30,10 @@ proof -
 qed
 
 
-(*
- pokazujem (a + b - c - a) / (sqrt(a + b - c) + sqrt a) \<le> (b - c) / (sqrt b + sqrt c)
-*)
-lemma nejednakost_korenova:
-  fixes a b c :: real
-  assumes "a > 0" "b > 0" "c > 0" "a \<ge> b" "b \<ge> c" "a + b > c" "b + c > a" "a + c > b"
-  shows "(a + b - c - a) / (sqrt(a + b - c) + sqrt a) \<le> (b - c) / (sqrt b + sqrt c)"
-  by (smt (verit, ccfv_SIG) assms(3) assms(4) assms(5) frac_le real_sqrt_gt_0_iff real_sqrt_le_mono)
 
 (*
  transformisem levu stranu nejednakosti korenova
- (a + b - c - a) / (sqrt(a + b - c) + sqrt a) = sqrt(a + b - c) - sqrt a
+ sqrt(a + b - c) - sqrt a = (a + b - c - a) / (sqrt(a + b - c) + sqrt a)
 *)
 lemma L_veza_korenova:
   fixes a b c :: real
@@ -59,6 +50,17 @@ lemma D_veza_korenova:
   assumes "a > 0" "b > 0" "c > 0" "a \<ge> b" "b \<ge> c" "a + b > c" "b + c > a" "a + c > b"
   shows "(b - c) / (sqrt b + sqrt c) = sqrt b - sqrt c"
   by (smt (verit, ccfv_threshold) assms(2) assms(3) nonzero_mult_div_cancel_left p.elims q.elims razlika_kvadrata_pq real_sqrt_ge_zero real_sqrt_le_iff)
+
+(*
+ pokazujem (a + b - c - a) / (sqrt(a + b - c) + sqrt a) \<le> (b - c) / (sqrt b + sqrt c)
+ tj. L_veza_korenova \<le> D_veza_korenova
+*)
+lemma nejednakost_korenova:
+  fixes a b c :: real
+  assumes "a > 0" "b > 0" "c > 0" "a \<ge> b" "b \<ge> c" "a + b > c" "b + c > a" "a + c > b"
+  shows "(a + b - c - a) / (sqrt(a + b - c) + sqrt a) \<le> (b - c) / (sqrt b + sqrt c)"
+  by (smt (verit, ccfv_SIG) assms(3) assms(4) assms(5) frac_le real_sqrt_gt_0_iff real_sqrt_le_mono)
+
 
 (*
  povezujem levu i desnu transformisanu stranu u nejednakost
@@ -97,17 +99,62 @@ lemma uvedi_pq:
   by (smt (verit, del_insts) q.simps razlika_kvadrata_pq)
 
 (*
+ pomocne teoreme za nejednakost_kvadrata
+*)
+lemma kvadrat_binoma_levo:
+  fixes a b c d :: real
+  shows "(a*c + b*d)^2 = a^2 * c^2 + 2*a*c*b*d + b^2 * d^2"
+  by (simp add: power2_sum power_mult_distrib)
+
+lemma kvadrat_binoma_desno:
+  fixes a b c d :: real
+  shows "a^2 * d^2 - 2*a*d*b*c + b^2 * c^2 = (a*d - b*c)^2"
+  by (simp add: power2_diff power_mult_distrib)
+(*
+ pokazujem (a^2 + b^2) * (c^2 + d^2) \<ge> (a*c + b*d)^2
+*)
+lemma nejednakost_kvadrata:
+  fixes a b c d :: real
+  shows "(a^2 + b^2) * (c^2 + d^2) - (a*c + b*d)^2 \<ge> 0"
+proof -
+  have "(a^2 + b^2) * (c^2 + d^2) - (a*c + b*d)^2 = a^2 * c^2 + a^2 * d^2 + b^2 * c^2 + b^2 * d^2
+  - (a^2 * c^2 + 2*a*c*b*d + b^2 * d^2)"
+    by (simp add: kvadrat_binoma_levo ring_class.ring_distribs(1) ring_class.ring_distribs(2))
+  also have "... = a^2 * d^2 + b^2 * c^2 - 2*a*c*b*d" by auto
+  also have "... = a^2 * d^2 - 2*a*d*b*c + b^2 * c^2" by auto
+  also have "... = (a*d - b*c)^2"
+    by (simp add: kvadrat_binoma_desno)
+  finally show ?thesis by auto
+qed
+
+(*
+drugi oblik prethodne leme
+*)
+lemma nejednakost_kvadrata_dva:
+  fixes a b c d :: real
+  shows "(a*c + b*d)^2 \<le> (a^2 + b^2) * (c^2 + d^2)"
+  using nejednakost_kvadrata by auto
+
+lemma jedan_kroz_kvadrat_koren:
+  fixes a :: real
+  assumes "a > 0"
+  shows "1 / (sqrt a) ^ 2 = 1 / a" 
+  using assms by auto
+
+(*
  pokazujem da su preostali sabirci manji od 2
-  TODO
 *)
 
 lemma manje_od_dva:
   fixes a b c :: real
   assumes "a > 0" "b > 0" "c > 0" "a \<ge> b" "b \<ge> c" "a + b > c" "b + c > a" "a + c > b"
-  shows "sqrt(c - p a b * q a b) / (sqrt c - q a b) + sqrt(c + p a b * q a b) / (sqrt c + q a b) \<le> 2"
+  shows "sqrt(c - a + b) / (sqrt c - sqrt a + sqrt b) + sqrt(c + a - b) / (sqrt c + sqrt a - sqrt b) \<le> 2"
   using assms
-  sorry
-
+proof -
+  have "(sqrt(c - a + b) / (sqrt c - sqrt a + sqrt b) + sqrt(c + a - b) / (sqrt c + sqrt a - sqrt b)) ^ 2 \<le> 
+  ((c - a + b) / (sqrt c - sqrt a + sqrt b) + (c + a - b) / (sqrt c + sqrt a - sqrt b)) * ((1 / (sqrt c - sqrt a + sqrt b) + (1 / (sqrt c + sqrt a - sqrt b))))"
+    sorry
+qed
 
 
 (*
